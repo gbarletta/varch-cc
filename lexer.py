@@ -1,97 +1,8 @@
-from enum import IntEnum
-
-token_names = [
-  "Name",
-  "Number",
-  "Open Parentheses",
-  "Close Parentheses",
-  "Open Bracket",
-  "Close Bracket",
-  "Open Curly",
-  "Close Curly",
-  "Hash",
-  "Plus",
-  "Dash",
-  "Single Quote",
-  "Double Quote",
-  "Greater-than",
-  "Less-than",
-  "Equal",
-  "Dot",
-  "Comma",
-  "Star",
-  "Semicolon",
-  "String Literal",
-  "Character Literal",
-  "Return",
-  "Int Type",
-  "Char Type",
-]
-
-class TokenType(IntEnum):
-  TOKEN_NAME = 0,
-  TOKEN_NUMBER = 1,
-  TOKEN_OPAREN = 2,
-  TOKEN_CPAREN = 3,
-  TOKEN_OBRACK = 4,
-  TOKEN_CBRACK = 5,
-  TOKEN_OCURLY = 6,
-  TOKEN_CCURLY = 7,
-  TOKEN_HASH = 8,
-  TOKEN_PLUS = 9,
-  TOKEN_DASH = 10,
-  TOKEN_SQUOTE = 11,
-  TOKEN_DQUOTE = 12,
-  TOKEN_GTS = 13,
-  TOKEN_LTS = 14,
-  TOKEN_EQUAL = 15,
-  TOKEN_DOT = 16,
-  TOKEN_COMMA = 17,
-  TOKEN_STAR = 18,
-  TOKEN_SEMICOL = 19,
-  TOKEN_STRLIT = 20,
-  TOKEN_CHARLIT = 21,
-  TOKEN_RETURN = 22,
-  TOKEN_TYPEINT = 23,
-  TOKEN_TYPECHAR = 24,
-
-
-class Location:
-  def __init__(self, file_path, row, col):
-    self.file_path = file_path
-    self.row = row + 1
-    self.col = col + 1
-
-  def __str__(self):
-    return f"{self.file_path}:{self.row}:{self.col}"
-
-class Token:
-  def __init__(self, token_type, text, location):
-    if token_type == TokenType.TOKEN_NAME:
-      match text:
-        case "return":
-          self.type = TokenType.TOKEN_RETURN
-        case "int":
-          self.type = TokenType.TOKEN_TYPEINT
-        case "char":
-          self.type = TokenType.TOKEN_TYPECHAR
-        case _:
-          self.type = TokenType.TOKEN_NAME
-          pass
-    else:
-      self.type = token_type
-    self.text = text
-    self.location = location
-  
-  def __str__(self):
-    return f"{self.location}: {token_names[self.type]} \"{self.text}\""
+from defs import TokenType, Token, Location
 
 class Lexer:
-  cursor = 0
-  row = 0
-  col = 0
-  stomach = []
-  tokens = []
+  cursor = 0; row = 0; col = 0
+  stomach = []; tokens = []
 
   def __init__(self, file_path):
     self.file_path = file_path
@@ -129,98 +40,59 @@ class Lexer:
   def append(self, token):
     self.tokens.append(token)
 
-  def get_location(self, token_length=0):
-    return Location(self.file_path, self.row, self.col - token_length)
+  def get_location(self):
+    return Location(self.file_path, self.row, self.col)
 
   def lex(self):
+    sym_tokens = {
+      ";": TokenType.TOKEN_SEMICOL, "*": TokenType.TOKEN_STAR, ",": TokenType.TOKEN_COMMA,
+      "(": TokenType.TOKEN_OPAREN, ")": TokenType.TOKEN_CPAREN, "[": TokenType.TOKEN_OBRACK,
+      "]": TokenType.TOKEN_CBRACK, "{": TokenType.TOKEN_OCURLY, "}": TokenType.TOKEN_CCURLY,
+      ".": TokenType.TOKEN_DOT, "<": TokenType.TOKEN_LTS, ">": TokenType.TOKEN_GTS,
+      "#": TokenType.TOKEN_HASH, "?": TokenType.TOKEN_QUEST,
+    }
     while not self.eof():
-      print(f"Current char: {self.curchar()}")
-      if self.curchar() == ";":
-        self.append(Token(TokenType.TOKEN_SEMICOL, ";", self.get_location()))
-        self.incr()
-        continue
-      if self.curchar() == "*":
-        self.append(Token(TokenType.TOKEN_STAR, "*", self.get_location()))
-        self.incr()
-        continue
-      if self.curchar() == ",":
-        self.append(Token(TokenType.TOKEN_COMMA, ",", self.get_location()))
-        self.incr()
-        continue
-      if self.curchar() == "(":
-        self.append(Token(TokenType.TOKEN_OPAREN, "(", self.get_location()))
-        self.incr()
-        continue
-      if self.curchar() == "[":
-        self.append(Token(TokenType.TOKEN_OBRACK, "[", self.get_location()))
-        self.incr()
-        continue
-      if self.curchar() == "]":
-        self.append(Token(TokenType.TOKEN_CBRACK, "]", self.get_location()))
-        self.incr()
-        continue
-      if self.curchar() == "{":
-        self.append(Token(TokenType.TOKEN_OCURLY, "{", self.get_location()))
-        self.incr()
-        continue
-      if self.curchar() == "}":
-        self.append(Token(TokenType.TOKEN_CCURLY, "}", self.get_location()))
-        self.incr()
-        continue
-      if self.curchar() == ")":
-        self.append(Token(TokenType.TOKEN_CPAREN, ")", self.get_location()))
-        self.incr()
-        continue
-      if self.curchar() == ".":
-        self.append(Token(TokenType.TOKEN_DOT, ".", self.get_location()))
-        self.incr()
-        continue
-      if self.curchar() == "<":
-        self.append(Token(TokenType.TOKEN_LTS, "<", self.get_location()))
-        self.incr()
-        continue
-      if self.curchar() == ">":
-        self.append(Token(TokenType.TOKEN_GTS, ">", self.get_location()))
-        self.incr()
-        continue
+      for sym in sym_tokens.keys():
+        if self.curchar() == sym:
+          self.append(Token(sym_tokens[sym], sym, self.get_location()))
+          self.incr()
+          if self.eof():
+            return
       if self.curchar().isspace():
         self.incr()
         continue
-      if self.curchar() == "#":
-        self.append(Token(TokenType.TOKEN_HASH, "#", self.get_location()))
-        self.incr()
-        continue
       if self.curchar().isalpha():
+        loc = self.get_location()
         self.eat()
         while not self.eof() and self.curchar().isalnum():
           self.eat()
         digest = self.digest()
-        self.append(Token(TokenType.TOKEN_NAME, digest, self.get_location(token_length=len(digest))))
+        self.append(Token(TokenType.TOKEN_NAME, digest, loc))
         continue
       if self.curchar() == "\"":
+        loc = self.get_location()
         self.incr()
         while not self.eof() and self.curchar() != "\"":
           self.eat()
         digest = self.digest()
-        self.append(Token(TokenType.TOKEN_STRLIT, digest, self.get_location(token_length=len(digest))))
+        self.append(Token(TokenType.TOKEN_STRLIT, digest, loc))
         self.incr()
         continue
       if self.curchar() == "'":
+        loc = self.get_location()
         self.incr()
         while not self.eof() and self.curchar() != "'":
           self.eat()
         digest = self.digest()
-        self.append(Token(TokenType.TOKEN_CHARLIT, digest, self.get_location(token_length=len(digest))))
+        self.append(Token(TokenType.TOKEN_CHARLIT, digest, loc))
         self.incr()
         continue
       if self.curchar().isnumeric():
+        loc = self.get_location()
         self.eat()
-        while not self.eof() and (self.curchar().isnumeric() or self.curchar() == "."):
+        while not self.eof() and (self.curchar().isnumeric() or self.curchar() in ["b", "x"]):
           self.eat()
         digest = self.digest()
-        self.append(Token(TokenType.TOKEN_NUMBER, digest, self.get_location(token_length=len(digest))))
+        self.append(Token(TokenType.TOKEN_NUMBER, digest, loc))
         continue
-    
-  def print(self):
-    print(self.text)
       
