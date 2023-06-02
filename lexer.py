@@ -1,4 +1,3 @@
-import re
 from defs import TokenType, Token, Location
 
 class Lexer:
