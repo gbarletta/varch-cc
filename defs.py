@@ -30,6 +30,8 @@ class TokenType(IntEnum):
   TOKEN_WHILE = 26,
   TOKEN_FOR = 27,
   TOKEN_QUEST = 28,
+  TOKEN_CONST = 29,
+  TOKEN_SLASH = 30,
 
 token_names = [
   "Name",
@@ -61,6 +63,8 @@ token_names = [
   "While",
   "For",
   "Question Mark",
+  "Constant",
+  "Slash",
 ]
 
 class Location:
@@ -88,6 +92,8 @@ class Token:
           self.type = TokenType.TOKEN_WHILE
         case "for":
           self.type = TokenType.TOKEN_FOR
+        case "const":
+          self.type = TokenType.TOKEN_CONST
         case _:
           self.type = TokenType.TOKEN_NAME
     else:
