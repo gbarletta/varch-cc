@@ -32,6 +32,7 @@ class TokenType(IntEnum):
   TOKEN_QUEST = 28,
   TOKEN_CONST = 29,
   TOKEN_SLASH = 30,
+  TOKEN_TYPEVOID = 31,
 
 token_names = [
   "Name",
@@ -65,8 +66,113 @@ token_names = [
   "Question Mark",
   "Constant",
   "Slash",
+  "Void Type",
 ]
 
+class AstNodeType(IntEnum):
+  PROGRAM = 0
+  BLOCK = 1
+  STATEMENT = 2
+  EXPRESSION = 3
+  SUM = 4
+  SUBTRACT = 5
+  MULTIPLY = 6
+  DIVIDE = 7
+  IDENTIFIER = 8
+  FUNCTION_CALL = 9
+  ARGUMENTS_FUNCTION_CALL = 10
+  CALLED_FUNCTION = 11
+  VARIABLE_DECLARATION = 12
+  FUNCTION_DECLARATION = 13
+  PARAMETERS_FUNCTION_DECLARATION = 14
+  FUNCTION_DECLARATION_BODY = 15
+  RETURN = 16
+  NUMBER_LITERAL = 17
+  STRING_LITERAL = 18
+  TRUE_LITERAL = 19
+  FALSE_LITERAL = 20
+  NEGATE = 21
+  MINUS = 22
+  GREATER_THAN = 23
+  LESS_THAN = 24
+  GREATER_EQUAL_THAN = 25
+  LESS_EQUAL_THAN = 26
+  EQUAL = 27
+  NOT_EQUAL = 28
+  POINTER = 29
+  ASSIGNMENT = 30
+  IF = 31
+  CONDITION = 32
+  IF_BODY = 33
+  IF_ELSE = 34
+  WHILE = 35
+  WHILE_BODY = 36
+  FOR = 37
+  FOR_INITIALIZATION = 38
+  FOR_STEP = 39
+  FOR_BODY = 40
+  AND = 41
+  OR = 42
+  ARRAY_ACCESS = 43
+  VARIABLE_DECLARATION_EXPR = 44,
+
+ast_names = [
+  "Program", 
+  "Block",
+  "Statement",
+  "Expression",
+  "Sum",
+  "Subtract",
+  "Multiply",
+  "Divide",
+  "Identifier",
+  "Function Call",
+  "Arguments for Function Call",
+  "Called Function",
+  "Variable Declaration",
+  "Function Declaration",
+  "Parameters for Function Declaration",
+  "Function Declaration Body",
+  "Return",
+  "Number Literal",
+  "String Literal",
+  "True Literal",
+  "False Literal",
+  "Negate",
+  "Minus",
+  "Greater Than",
+  "Less Than",
+  "Greater Or Equal Than",
+  "Less Or Equal Than",
+  "Equal",
+  "Not Equal",
+  "Pointer",
+  "Assignment",
+  "If",
+  "Condition",
+  "If Body",
+  "If Else",
+  "While",
+  "While Body",
+  "For",
+  "For Initialization",
+  "For Step",
+  "For Body",
+  "And",
+  "Or",
+  "Array Access",
+  "Variable Declaration Expression",
+]
+
+class IdentifierType(IntEnum):
+  INVALID = -1,
+  VOID = 0,
+  VOID_PTR = 1,
+  INT = 2,
+  INT_PTR = 3,
+  CHAR = 4,
+  CHAR_PTR = 5,
+    
 class Location:
   def __init__(self, file_path, row, col):
     self.file_path = file_path
@@ -86,6 +192,8 @@ class Token:
           self.type = TokenType.TOKEN_TYPEINT
         case "char":
           self.type = TokenType.TOKEN_TYPECHAR
+        case "void":
+          self.type = TokenType.TOKEN_TYPEVOID
         case "if":
           self.type = TokenType.TOKEN_IF
         case "while":
@@ -103,3 +211,21 @@ class Token:
   
   def __str__(self):
     return f"{self.location}: {token_names[self.type]} \"{self.text}\""
+
+class AstNode:
+  def __init__(self, node_type, location, metadata=None):
+    self.type = node_type
+    self.location = location
+    self.metadata = metadata
+
+  def __str__(self):
+    return f"{self.location}: {ast_names[self.type]}, {'no metadata' if self.metadata == None else self.metadata}"
+
+class CompilerError(Exception):
+  def __init__(self, astgen, message, offset=0):
+    self.location = astgen.get_current_location(offset=offset)
+    self.message = message
+    super().__init__(self.message)
+
+  def __str__(self):
+    return f"{self.message} at {self.location}"

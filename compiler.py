@@ -1,4 +1,5 @@
 import lexer
+import astgen
 
 class Compiler:
   def __init__(self, file_path):
@@ -10,8 +11,8 @@ class Compiler:
       print(f"ERROR: couldn't open file {file_path}")
 
   def compile(self):
-    lx = lexer.Lexer(self.file_path, self.text)
-    lx.lex()
+    lex = lexer.Lexer(self.file_path, self.text)
+    lex.lex()
 
-    for token in lx.tokens:
-      print(str(token))
+    parser = astgen.AstGen(lex.tokens)
+    parser.generate()

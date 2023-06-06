@@ -49,6 +49,7 @@ class Lexer:
       "/": TokenType.TOKEN_SLASH,
     }
     while not self.eof():
+      # print(self.curchar())
       for sym in sym_tokens.keys():
         if self.curchar() == sym: # one character tokens (see sym_tokens)
           self.append(Token(sym_tokens[sym], sym, self.get_location()))
@@ -60,11 +61,14 @@ class Lexer:
       if self.curchar().isalpha(): # names (identifiers)
         loc = self.get_location()
         self.eat()
-        while not self.eof() and self.curchar().isalnum():
+        while not self.eof() and (self.curchar().isalnum() or self.curchar() == "_"):
           self.eat()
         digest = self.digest()
         self.append(Token(TokenType.TOKEN_NAME, digest, loc))
       if self.curchar() == "#": # ignoring preprocessor 
+        while not self.eof() and self.curchar() != "\n":
+          self.incr()
+      if self.curchar() == "/" and self.text[self.cursor + 1] == '/': # comments 
         while not self.eof() and self.curchar() != "\n":
           self.incr()
       if self.curchar() == "\"": # string literals
