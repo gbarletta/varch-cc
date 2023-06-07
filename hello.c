@@ -1,8 +1,6 @@
-int global_var;
-void printf(char *string);
-
-void main()
+int main()
 {
-  // this is a simple hello world!
-  printf("hello, world!\n");
+  int *a = 1;
+  int b = *(a+1);
+  a = 38 + checkint(3);
 }

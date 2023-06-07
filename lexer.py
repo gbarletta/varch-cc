@@ -11,13 +11,14 @@ class Lexer:
   def eof(self):
     return self.cursor >= len(self.text)
   
-  def incr(self): # increment cursor while updating current row and col
-    if self.curchar() == "\n":
-      self.col = 0
-      self.row += 1
-    else:
-      self.col += 1
-    self.cursor += 1
+  def incr(self, steps=1): # increment cursor while updating current row and col
+    for _ in range(0, steps):
+      if self.curchar() == "\n":
+        self.col = 0
+        self.row += 1
+      else:
+        self.col += 1
+      self.cursor += 1
 
   def eat(self): # eat character and put in stomach
     character = self.text[self.cursor]
@@ -30,8 +31,11 @@ class Lexer:
     self.stomach = []
     return token_string
   
-  def curchar(self):
-    return self.text[self.cursor]
+  def curchar(self, offset=0):
+    position = self.cursor + offset
+    if position >= len(self.text):
+      raise Exception("eof")
+    return self.text[position]
   
   def append(self, token):
     self.tokens.append(token)
@@ -46,10 +50,37 @@ class Lexer:
       "]": TokenType.TOKEN_CBRACK, "{": TokenType.TOKEN_OCURLY, "}": TokenType.TOKEN_CCURLY,
       ".": TokenType.TOKEN_DOT, "<": TokenType.TOKEN_LTS, ">": TokenType.TOKEN_GTS,
       "?": TokenType.TOKEN_QUEST, "+": TokenType.TOKEN_PLUS, "-": TokenType.TOKEN_DASH,
-      "/": TokenType.TOKEN_SLASH,
+      "/": TokenType.TOKEN_SLASH, "|": TokenType.TOKEN_VERBAR, "&": TokenType.TOKEN_AMPERS,
+      "!": TokenType.TOKEN_EXCL, "=": TokenType.TOKEN_EQUAL,
     }
     while not self.eof():
       # print(self.curchar())
+      if self.curchar() == "|" and self.curchar(1) == "|":
+        loc = self.get_location()
+        self.incr(2)
+        self.append(Token(TokenType.TOKEN_OR, "||", loc))
+      if self.curchar() == "&" and self.curchar(1) == "&":
+        loc = self.get_location()
+        self.incr(2)
+        self.append(Token(TokenType.TOKEN_AND, "&&", loc))
+      if self.curchar() == "!" and self.curchar(1) == "=":
+        loc = self.get_location()
+        self.incr(2)
+        self.append(Token(TokenType.TOKEN_NOT_EQUAL, "!=", loc))
+      if self.curchar() == "=" and self.curchar(1) == "=":
+        print("Ay Yo")
+        loc = self.get_location()
+        self.incr(2)
+        self.append(Token(TokenType.TOKEN_EQUAL_EQUAL, "==", loc))
+        print(self.curchar())
+      if self.curchar() == ">" and self.curchar(1) == "=":
+        loc = self.get_location()
+        self.incr(2)
+        self.append(Token(TokenType.TOKEN_GTE, ">=", loc))
+      if self.curchar() == "<" and self.curchar(1) == "=":
+        loc = self.get_location()
+        self.incr(2)
+        self.append(Token(TokenType.TOKEN_LTE, "<=", loc))
       for sym in sym_tokens.keys():
         if self.curchar() == sym: # one character tokens (see sym_tokens)
           self.append(Token(sym_tokens[sym], sym, self.get_location()))

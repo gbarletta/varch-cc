@@ -33,6 +33,18 @@ class TokenType(IntEnum):
   TOKEN_CONST = 29,
   TOKEN_SLASH = 30,
   TOKEN_TYPEVOID = 31,
+  TOKEN_VERBAR = 32,
+  TOKEN_AMPERS = 33,
+  TOKEN_OR = 34,
+  TOKEN_AND = 35,
+  TOKEN_NOT_EQUAL = 36,
+  TOKEN_GTE = 37,
+  TOKEN_LTE = 38,
+  TOKEN_EXCL = 39,
+  TOKEN_TRUE = 40,
+  TOKEN_FALSE = 41,
+  TOKEN_ELSE = 42,
+  TOKEN_EQUAL_EQUAL = 43,
 
 token_names = [
   "Name",
@@ -67,54 +79,72 @@ token_names = [
   "Constant",
   "Slash",
   "Void Type",
+  "Vertical Bar",
+  "Ampersand",
+  "Or",
+  "And",
+  "Not Equal",
+  "Greater-than Or Equal",
+  "Less-than Or Equal",
+  "Exclamative Point",
+  "True",
+  "False",
+  "Else",
+  "Equal Equal",
 ]
 
 class AstNodeType(IntEnum):
-  PROGRAM = 0
-  BLOCK = 1
-  STATEMENT = 2
-  EXPRESSION = 3
-  SUM = 4
-  SUBTRACT = 5
-  MULTIPLY = 6
-  DIVIDE = 7
-  IDENTIFIER = 8
-  FUNCTION_CALL = 9
-  ARGUMENTS_FUNCTION_CALL = 10
-  CALLED_FUNCTION = 11
-  VARIABLE_DECLARATION = 12
-  FUNCTION_DECLARATION = 13
-  PARAMETERS_FUNCTION_DECLARATION = 14
-  FUNCTION_DECLARATION_BODY = 15
-  RETURN = 16
-  NUMBER_LITERAL = 17
-  STRING_LITERAL = 18
-  TRUE_LITERAL = 19
-  FALSE_LITERAL = 20
-  NEGATE = 21
-  MINUS = 22
-  GREATER_THAN = 23
-  LESS_THAN = 24
-  GREATER_EQUAL_THAN = 25
-  LESS_EQUAL_THAN = 26
-  EQUAL = 27
-  NOT_EQUAL = 28
-  POINTER = 29
-  ASSIGNMENT = 30
-  IF = 31
-  CONDITION = 32
-  IF_BODY = 33
-  IF_ELSE = 34
-  WHILE = 35
-  WHILE_BODY = 36
-  FOR = 37
-  FOR_INITIALIZATION = 38
-  FOR_STEP = 39
-  FOR_BODY = 40
-  AND = 41
-  OR = 42
-  ARRAY_ACCESS = 43
+  PROGRAM = 0,
+  BLOCK = 1,
+  STATEMENT = 2,
+  EXPRESSION = 3,
+  SUM = 4,
+  SUBTRACT = 5,
+  MULTIPLY = 6,
+  DIVIDE = 7,
+  IDENTIFIER = 8,
+  FUNCTION_CALL = 9,
+  FUNCTION_CALL_ARGS = 10,
+  FUNCTION_CALL_CALLEE = 11,
+  VARIABLE_DECLARATION = 12,
+  FUNCTION_DECLARATION = 13,
+  PARAMETERS_FUNCTION_DECLARATION = 14,
+  FUNCTION_DECLARATION_BODY = 15,
+  RETURN = 16,
+  NUMBER_LITERAL = 17,
+  STRING_LITERAL = 18,
+  TRUE_LITERAL = 19,
+  FALSE_LITERAL = 20,
+  NEGATE = 21,
+  MINUS = 22,
+  GREATER_THAN = 23,
+  LESS_THAN = 24,
+  GREATER_EQUAL_THAN = 25,
+  LESS_EQUAL_THAN = 26,
+  EQUAL = 27,
+  NOT_EQUAL = 28,
+  POINTER = 29,
+  ASSIGNMENT = 30,
+  IF = 31,
+  CONDITION = 32,
+  IF_BODY = 33,
+  ELSE_BODY = 34,
+  WHILE = 35,
+  WHILE_BODY = 36,
+  FOR = 37,
+  FOR_INITIALIZATION = 38,
+  FOR_STEP = 39,
+  FOR_BODY = 40,
+  AND = 41,
+  OR = 42,
+  ARRAY_ACCESS = 43,
   VARIABLE_DECLARATION_EXPR = 44,
+  GLOBAL_VARIABLE_DECLARATION = 45,
+  CHAR_LITERAL = 46,
+  POINTER_ASSIGNMENT = 47,
+  POINTER_ASSIGNMENT_ADDR = 48,
+  POINTER_ASSIGNMENT_EXPR = 49,
+  POINTER_ADDRESS = 50,
 
 ast_names = [
   "Program", 
@@ -128,7 +158,7 @@ ast_names = [
   "Identifier",
   "Function Call",
   "Arguments for Function Call",
-  "Called Function",
+  "Function Call Callee",
   "Variable Declaration",
   "Function Declaration",
   "Parameters for Function Declaration",
@@ -151,7 +181,7 @@ ast_names = [
   "If",
   "Condition",
   "If Body",
-  "If Else",
+  "Else Body",
   "While",
   "While Body",
   "For",
@@ -162,6 +192,12 @@ ast_names = [
   "Or",
   "Array Access",
   "Variable Declaration Expression",
+  "Global Variable Declaration",
+  "Char Literal",
+  "Pointer Assignment",
+  "Pointer Assignment Address",
+  "Pointer Assignment Expression",
+  "Pointer Address",
 ]
 
 class IdentifierType(IntEnum):
@@ -202,21 +238,47 @@ class Token:
           self.type = TokenType.TOKEN_FOR
         case "const":
           self.type = TokenType.TOKEN_CONST
+        case "true":
+          self.type = TokenType.TOKEN_TRUE
+        case "false":
+          self.type = TokenType.TOKEN_FALSE
+        case "else":
+          self.type = TokenType.TOKEN_ELSE
         case _:
           self.type = TokenType.TOKEN_NAME
     else:
       self.type = token_type
     self.text = text
     self.location = location
+
+  def is_type(self):
+    match self.type:
+      case TokenType.TOKEN_TYPEINT | TokenType.TOKEN_TYPECHAR | TokenType.TOKEN_TYPEVOID:
+        return True
+      case _:
+        return False
   
   def __str__(self):
     return f"{self.location}: {token_names[self.type]} \"{self.text}\""
 
 class AstNode:
-  def __init__(self, node_type, location, metadata=None):
+  def __init__(self, node_type, location=None, metadata=None):
     self.type = node_type
     self.location = location
     self.metadata = metadata
+    self.children = []
+
+  def append(self, ast_node):
+    self.children.append(ast_node)
+
+  def extend(self, ast_nodes):
+    self.children.extend(ast_nodes)
+
+  def print(self, prefix=""):
+    print(f"{prefix}└── {self}")
+    prefix = prefix + "    "
+    for child in self.children:
+      child.print(prefix)
 
   def __str__(self):
     return f"{self.location}: {ast_names[self.type]}, {'no metadata' if self.metadata == None else self.metadata}"
