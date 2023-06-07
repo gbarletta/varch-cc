@@ -3,6 +3,7 @@
 I'm trying to write a compiler that targets my abstract virtual machine, Venere. Would be nice to compile a subset of C: 
 * no preprocessor
 * no function prototypes
+* no structs
 * no arrays (just use pointers, kid!)
 * lots of keywords are ignored (export, inline, ...)
 
