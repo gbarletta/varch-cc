@@ -4,7 +4,7 @@ I'm trying to write a compiler that targets my abstract virtual machine, Venere.
 * no preprocessor
 * no function prototypes
 * no structs
-* no arrays (just use pointers, kid!)
+* no array accesses (just use pointers, kid!)
 * lots of keywords are ignored (export, inline, ...)
 
 It will take time, but let's see how it goes :>
