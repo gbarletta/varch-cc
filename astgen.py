@@ -303,6 +303,7 @@ class AstGen:
       return or_node
     return and_node
 
+  """
   @debug(0)   
   def parse_assignment(self):
     location = self.peek().location
@@ -318,6 +319,25 @@ class AstGen:
       assignment.append(self.parse_assignment())
       return assignment
     else:
+      return self.parse_or()
+  """
+
+  @debug(0)   
+  def parse_assignment(self):
+    location = self.peek().location
+    cursor = self.cursor
+    lvalue = self.parse_or()
+    if self.peek().type == TokenType.TOKEN_EQUAL:
+      self.incr()
+      assignment = AstNode(
+        AstNodeType.ASSIGNMENT,
+        location,
+      )
+      assignment.append(lvalue)
+      assignment.append(self.parse_expression())
+      return assignment
+    else:
+      self.cursor = cursor
       return self.parse_or()
 
   @debug(0)    
