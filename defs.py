@@ -1,3 +1,4 @@
+import json
 from enum import IntEnum
 
 class TokenType(IntEnum):
@@ -208,6 +209,33 @@ class IdentifierType(IntEnum):
   INT_PTR = 3,
   CHAR = 4,
   CHAR_PTR = 5,
+  INT_ARR = 6,
+  CHAR_ARR = 7,
+  VOID_PTR_ARR = 8,
+  INT_PTR_ARR = 9,
+  CHAR_PTR_ARR = 10,
+
+identifier_type_names = [
+  "Void",
+  "Pointer To Void",
+  "Integer",
+  "Pointer To Integer",
+  "Character",
+  "Pointer To Character",
+  "Array Of Integers",
+  "Array Of Characters",
+  "Array Of Void Pointers",
+  "Array Of Integer Pointers",
+  "Array Of Character Pointers",
+]
+
+class TypeInfo:
+  def __init__(self, identifier_type, size):
+    self.type = identifier_type
+    self.size = size
+
+  def __str__(self):
+    return f"{identifier_type_names[self.type]}, Size: {self.size}"
     
 class Location:
   def __init__(self, file_path, row, col):
@@ -280,8 +308,22 @@ class AstNode:
     for child in self.children:
       child.print(prefix)
 
+  def print_post(self):
+    for child in self.children:
+      child.print_post()
+    print(self)
+
   def __str__(self):
-    return f"{self.location}: {ast_names[self.type]}, {'no metadata' if self.metadata == None else self.metadata}"
+    out = f"{self.location}: {ast_names[self.type]}"
+    if self.metadata != None:
+      for meta in self.metadata.keys():
+        out += f", [{meta}: {self.metadata[meta]}]"
+    return out
+  
+  def generate(self, codegen):
+    for child in self.children:
+      child.generate(codegen)
+    codegen.process(self)
 
 class CompilerError(Exception):
   def __init__(self, astgen, message, offset=0):

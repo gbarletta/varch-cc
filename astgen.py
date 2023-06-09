@@ -1,5 +1,5 @@
 import traceback
-from defs import TokenType, Token, AstNodeType, IdentifierType, AstNode, Location, CompilerError, token_names
+from defs import TokenType, Token, AstNodeType, IdentifierType, AstNode, Location, CompilerError, token_names, TypeInfo
 from treelib import Node, Tree
 from functools import wraps
 
@@ -17,8 +17,10 @@ def debug(num_tokens):
 class AstGen:
   cursor = 0
 
-  def __init__(self, tokens):
+  def __init__(self, file_path, tokens):
+    self.file_path = file_path
     self.tokens = tokens
+    self.program = None
 
   def eof(self):
     return self.cursor >= len(self.tokens)
@@ -39,10 +41,12 @@ class AstGen:
     return self.tokens[position].location
   
   def expect_token(self, token_type, incr=True):
-    if self.peek().type != token_type:
+    token = self.peek()
+    if token.type != token_type:
       raise CompilerError(self, f"expected \"{token_names[token_type]}\"")
     if incr:
       self.incr()
+    return token
   
   @debug(0)
   def parse_identifier(self):
@@ -56,26 +60,26 @@ class AstGen:
   def parse_type(self):
     t0 = self.peek(0)
     t1 = self.peek(1)
-    if t1.type != TokenType.TOKEN_STAR:
-      self.incr()
-      match t0.type:
-        case TokenType.TOKEN_TYPEINT:
-          return IdentifierType.INT
-        case TokenType.TOKEN_TYPECHAR:
-          return IdentifierType.CHAR
-        case TokenType.TOKEN_TYPEVOID:
-          return IdentifierType.VOID
-        case _:
-          raise CompilerError(self, "expected type")
-    else:
+    if t1.type == TokenType.TOKEN_STAR:
       self.incr(2)
       match t0.type:
         case TokenType.TOKEN_TYPEINT:
-          return IdentifierType.INT_PTR
+          return TypeInfo(IdentifierType.INT_PTR, 2)
         case TokenType.TOKEN_TYPECHAR:
-          return IdentifierType.CHAR_PTR
+          return TypeInfo(IdentifierType.CHAR_PTR, 2)
         case TokenType.TOKEN_TYPEVOID:
-          return IdentifierType.VOID_PTR
+          return TypeInfo(IdentifierType.VOID_PTR, 2)
+        case _:
+          raise CompilerError(self, "expected type")
+    else:
+      self.incr()
+      match t0.type:
+        case TokenType.TOKEN_TYPEINT:
+          return TypeInfo(IdentifierType.INT, 2)
+        case TokenType.TOKEN_TYPECHAR:
+          return TypeInfo(IdentifierType.CHAR, 1)
+        case TokenType.TOKEN_TYPEVOID:
+          return TypeInfo(IdentifierType.VOID, 1)
         case _:
           raise CompilerError(self, "expected type")
 
@@ -139,12 +143,14 @@ class AstGen:
           raise CompilerError(self, "\")\" expected")
       case _:
         raise CompilerError(self, "invalid token for primary expression")
-  
+      
+  """
   @debug(0)      
   def parse_call(self):
     location = self.peek().location
+    cursor = self.cursor
     primary_node = self.parse_primary()
-    while not self.eof() and self.peek().type == TokenType.TOKEN_OPAREN:
+    if self.peek().type == TokenType.TOKEN_OPAREN:
       self.incr()
       function_call_node = AstNode(
         AstNodeType.FUNCTION_CALL,
@@ -171,8 +177,46 @@ class AstGen:
       function_call_callee_node.append(primary_node)
       function_call_node.append(function_call_callee_node)
       function_call_node.append(function_call_arguments_node)
-      primary_node = function_call_node
-    return primary_node
+      return function_call_node
+    else:
+      self.cursor = cursor
+      return self.parse_primary()
+  """
+
+  @debug(0)      
+  def parse_call(self):
+    location = self.peek().location
+    node = self.parse_primary()
+    if not self.eof() and self.peek().type == TokenType.TOKEN_OPAREN:
+      self.incr()
+      function_call_node = AstNode(
+        AstNodeType.FUNCTION_CALL,
+        location,
+      )
+      function_call_callee_node = AstNode(
+        AstNodeType.FUNCTION_CALL_CALLEE,
+        location,
+      )
+      function_call_arguments_node = AstNode(
+        AstNodeType.FUNCTION_CALL_ARGS,
+        location,
+      )
+      while not self.eof() and self.peek().type != TokenType.TOKEN_CPAREN:
+        function_call_arguments_node.append(self.parse_expression())
+        match self.peek().type:
+          case TokenType.TOKEN_COMMA:
+            self.incr()
+          case TokenType.TOKEN_CPAREN:
+            break
+          case _:
+            raise CompilerError(self, "expected \",\" or \")\"")
+      self.incr()
+      function_call_callee_node.append(node)
+      function_call_node.append(function_call_callee_node)
+      function_call_node.append(function_call_arguments_node)
+      return function_call_node
+    else:
+      return node
 
   @debug(0)      
   def parse_unary(self):
@@ -322,6 +366,7 @@ class AstGen:
       return self.parse_or()
   """
 
+  
   @debug(0)   
   def parse_assignment(self):
     location = self.peek().location
@@ -352,6 +397,10 @@ class AstGen:
       if self.peek().type == TokenType.TOKEN_CPAREN:
         break
       identifier_type = self.parse_type()
+      if identifier_type.type in [IdentifierType.CHAR_ARR, IdentifierType.INT_ARR]:
+        raise CompilerError(self, "use pointers to pass arrays into function")
+      if identifier_type.type == IdentifierType.VOID:
+        raise CompilerError(self, "can't use a \"void\" parameter in function")
       identifier_name = self.parse_identifier()
       parameters.append({"name": identifier_name, "type": identifier_type})
       match self.peek().type:
@@ -423,6 +472,7 @@ class AstGen:
     if_node.append(if_condition_node)
     if_node.append(if_body_node)
     if self.peek().type == TokenType.TOKEN_ELSE:
+      self.incr()
       else_body_node = AstNode(
         AstNodeType.ELSE_BODY,
         self.peek().location,
@@ -540,8 +590,37 @@ class AstGen:
       identifier_type = self.parse_type()
       identifier_name = self.parse_identifier()
       match self.peek().type:
+        case TokenType.TOKEN_OBRACK:
+          self.incr()
+          arr_size = self.expect_token(TokenType.TOKEN_NUMBER)
+          self.expect_token(TokenType.TOKEN_CBRACK)
+          self.expect_token(TokenType.TOKEN_SEMICOL)
+          match identifier_type.type:
+            case IdentifierType.INT:
+              identifier_type = TypeInfo(IdentifierType.INT_ARR, int(arr_size.text) * 2)
+            case IdentifierType.CHAR:
+              identifier_type = TypeInfo(IdentifierType.CHAR_ARR, int(arr_size.text))
+            case IdentifierType.VOID_PTR:
+              identifier_type = TypeInfo(IdentifierType.VOID_PTR_ARR, int(arr_size.text) * 2)
+            case IdentifierType.INT_PTR:
+              identifier_type = TypeInfo(IdentifierType.INT_PTR_ARR, int(arr_size.text) * 2)
+            case IdentifierType.CHAR_PTR:
+              identifier_type = TypeInfo(IdentifierType.CHAR_PTR_ARR, int(arr_size.text) * 2)
+            case IdentifierType.VOID:
+              raise CompilerError(self, "can't declare array of \"void\"")
+            case _:
+              raise CompilerError(self, "expected type")
+          return AstNode(
+            AstNodeType.VARIABLE_DECLARATION,
+            location,
+            {"name": identifier_name, "type": identifier_type},
+          )    
         case TokenType.TOKEN_EQUAL:
           self.incr()
+          if identifier_type.type in [IdentifierType.CHAR_ARR, IdentifierType.INT_ARR]:
+            raise CompilerError(self, "can't declare and assign to array variables (please assign values later with memory accesses)")
+          if identifier_type.type == IdentifierType.VOID:
+            raise CompilerError(self, "can't declare \"void\" variable")
           variable_declaration = AstNode(
             AstNodeType.VARIABLE_DECLARATION,
             location,
@@ -552,12 +631,16 @@ class AstGen:
           return variable_declaration
         case TokenType.TOKEN_SEMICOL:
           self.incr()
+          if identifier_type.type == IdentifierType.VOID:
+            raise CompilerError(self, "can't declare \"void\" variable")
           return AstNode(
             AstNodeType.VARIABLE_DECLARATION,
             location,
             {"name": identifier_name, "type": identifier_type},
           )
         case TokenType.TOKEN_OPAREN:
+          if identifier_type.type in [IdentifierType.CHAR_ARR, IdentifierType.INT_ARR]:
+            raise CompilerError(self, "can't use array type as return value in function declaration (please use a pointer as return value)")
           parameters = self.parse_parameters()
           function_decl_body = self.parse_statement()
           function_decl = AstNode(
@@ -572,15 +655,14 @@ class AstGen:
     else:
       return self.parse_statement()
     
-  def generate(self):
+  def parse(self):
     try:
-      program = AstNode(
+      self.program = AstNode(
         AstNodeType.PROGRAM,
-        Location("Program", 0, 0),
+        Location(self.file_path, 0, 0),
       )
       while not self.eof():
-        program.append(self.parse_declaration())
-      program.print()
+        self.program.append(self.parse_declaration())
     except CompilerError as compiler_error:
-      # traceback.print_exc()
+      traceback.print_exc()
       print(str(compiler_error))
