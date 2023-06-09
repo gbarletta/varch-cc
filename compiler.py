@@ -1,5 +1,6 @@
 import lexer
 import astgen
+import codegen
 
 class Compiler:
   def __init__(self, file_path):
@@ -14,5 +15,8 @@ class Compiler:
     lex = lexer.Lexer(self.file_path, self.text)
     lex.lex()
 
-    parser = astgen.AstGen(lex.tokens)
-    parser.generate()
+    parser = astgen.AstGen(self.file_path, lex.tokens)
+    parser.parse()
+
+    gen = codegen.CodeGen(self.file_path)
+    parser.program.generate(gen)
