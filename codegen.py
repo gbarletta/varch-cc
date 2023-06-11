@@ -9,7 +9,6 @@ class CodeGen:
     self.regs = [False] * 16
     self.in_func = False
     self.current_var_declarations = 0
-    self.current_stack_pos = 0
     self.symbols = {}
     self.stack_symbols = []
     self.current_label = 0
@@ -49,8 +48,7 @@ class CodeGen:
         self.in_func = True
         self.append(f"push\tsf")
         self.append(f"mov\tsf, sp")
-        if len(node.metadata["parameters"]) > 0:
-          self.append(f"sub\tsp, NUM_VAR_PLACEHOLDER")
+        self.append(f"LOCAL_STACK_INIT_PLACEHOLDER")
         self.symbols[node.metadata["name"]] = {"type": "func"}
         for idx, param in enumerate(node.metadata["parameters"]):
           self.symbols[param["name"]] = {"type": "stack", "pos": 2 + ((idx + 1) * 2)}
@@ -59,8 +57,10 @@ class CodeGen:
         self.append(f"mov\tsp, sf")
         self.append(f"pop\tsf")
         self.append(f"ret")
-        self.replace("NUM_VAR_PLACEHOLDER", str(self.current_var_declarations * 2))
-        self.current_stack_pos = 0
+        if self.current_var_declarations > 0:
+          self.replace("LOCAL_STACK_INIT_PLACEHOLDER", f"sub\tsp, {str(self.current_var_declarations * 2)}")
+        else:
+          self.replace("LOCAL_STACK_INIT_PLACEHOLDER", "")
         self.current_var_declarations = 0
         self.symbols = {key: self.symbols[key] for key in self.symbols if key not in self.stack_symbols}
         self.in_func = False
@@ -68,20 +68,21 @@ class CodeGen:
         for block_node in node.children:
           self.process(block_node)
       case AstNodeType.VARIABLE_DECLARATION:
+        stack_pos = None
         if len(node.children) == 1:
           reg = self.process(node.children[0])
         if self.in_func:
+          print("Ay Yo porco", self.current_var_declarations)
           self.current_var_declarations += 1
-          self.symbols[node.metadata["name"]] = {"type": "stack", "pos": -2 - ((self.current_var_declarations - 1) * 2)}
+          stack_pos = -2 - ((self.current_var_declarations - 1) * 2)
+          self.symbols[node.metadata["name"]] = {"type": "stack", "pos": stack_pos}
           self.stack_symbols.append(node.metadata["name"])
           print(self.symbols)
         else:
           self.symbols[node.metadata["name"]] = {"type": "data"}
         if len(node.children) == 1:
-          self.append(f"mov\t[sf-{self.current_stack_pos * 2}], r{reg}")
+          self.append(f"mov\tsf {stack_pos:+g}, r{reg}".replace("-", "- ").replace("+", "+ "))
           self.free_reg(reg)
-        if self.in_func:
-          self.current_stack_pos += 1
       case AstNodeType.NUMBER_LITERAL:
         reg = self.alloc_reg()
         self.append(f"mov\tr{reg}, {node.metadata['value']}")
