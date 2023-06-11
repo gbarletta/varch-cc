@@ -3,7 +3,10 @@
 .fibonacci:
 	push	sf
 	mov	sf, sp
-	sub	sp, 0
+	sub	sp, 2
+	mov	r0, sf - 2
+	mov	r1, 40
+	mov	[r0], r1
 	mov	r0, sf + 4
 	mov	r1, [r0]
 	mov	r0, 1
@@ -44,6 +47,9 @@
 .main:
 	push	sf
 	mov	sf, sp
+	sub	sp, 2
+	mov	r0, 8
+	mov	sf - 2, r0
 	mov	r0, fibonacci
 	mov	r1, 10
 	push	r1
