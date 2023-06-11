@@ -68,11 +68,9 @@ class Lexer:
         self.incr(2)
         self.append(Token(TokenType.TOKEN_NOT_EQUAL, "!=", loc))
       if self.curchar() == "=" and self.curchar(1) == "=":
-        print("Ay Yo")
         loc = self.get_location()
         self.incr(2)
         self.append(Token(TokenType.TOKEN_EQUAL_EQUAL, "==", loc))
-        print(self.curchar())
       if self.curchar() == ">" and self.curchar(1) == "=":
         loc = self.get_location()
         self.incr(2)

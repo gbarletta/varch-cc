@@ -1,6 +1,12 @@
+int fibonacci(int n)
+{
+  if (n <= 1)
+    return n;
+  else
+    return fibonacci(n - 1) + fibonacci(n - 2);
+}
+
 int main()
 {
-  int *a = 1;
-  int b = *(a+1);
-  a = 38 + checkint(3);
+  return fibonacci(10);
 }

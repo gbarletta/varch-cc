@@ -146,6 +146,7 @@ class AstNodeType(IntEnum):
   POINTER_ASSIGNMENT_ADDR = 48,
   POINTER_ASSIGNMENT_EXPR = 49,
   POINTER_ADDRESS = 50,
+  VALUE = 51,
 
 ast_names = [
   "Program", 
@@ -199,6 +200,7 @@ ast_names = [
   "Pointer Assignment Address",
   "Pointer Assignment Expression",
   "Pointer Address",
+  "Value",
 ]
 
 class IdentifierType(IntEnum):
@@ -321,9 +323,9 @@ class AstNode:
     return out
   
   def generate(self, codegen):
+    codegen.process(self)
     for child in self.children:
       child.generate(codegen)
-    codegen.process(self)
 
 class CompilerError(Exception):
   def __init__(self, astgen, message, offset=0):

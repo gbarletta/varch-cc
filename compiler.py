@@ -19,4 +19,10 @@ class Compiler:
     parser.parse()
 
     gen = codegen.CodeGen(self.file_path)
-    parser.program.generate(gen)
+    parser.print()
+    gen.process(parser.program)
+
+    with open(f"{self.file_path.replace('.c', '.s')}", "w") as f:
+      f.write(str(gen))
+    
+    # print(gen)

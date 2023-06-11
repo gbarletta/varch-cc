@@ -88,13 +88,18 @@ class AstGen:
     location = self.peek().location
     match self.peek().type:
       case TokenType.TOKEN_NAME:
+        value_node = AstNode(
+          AstNodeType.VALUE,
+          location,
+        )
         identifier_node = AstNode(
           AstNodeType.IDENTIFIER,
           location,
           {"name": self.peek().text},
         )
+        value_node.append(identifier_node)
         self.incr()
-        return identifier_node
+        return value_node
       case TokenType.TOKEN_NUMBER:
         number_node = AstNode(
           AstNodeType.NUMBER_LITERAL,
@@ -186,7 +191,16 @@ class AstGen:
   @debug(0)      
   def parse_call(self):
     location = self.peek().location
-    node = self.parse_primary()
+    cursor = self.cursor
+    if self.peek().type == TokenType.TOKEN_NAME:
+      node = AstNode(
+        AstNodeType.IDENTIFIER,
+        location,
+        {"name": self.peek().text},
+      )
+      self.incr()
+    else:
+      node = self.parse_primary()
     if not self.eof() and self.peek().type == TokenType.TOKEN_OPAREN:
       self.incr()
       function_call_node = AstNode(
@@ -216,7 +230,8 @@ class AstGen:
       function_call_node.append(function_call_arguments_node)
       return function_call_node
     else:
-      return node
+      self.cursor = cursor
+      return self.parse_primary()
 
   @debug(0)      
   def parse_unary(self):
@@ -231,6 +246,19 @@ class AstGen:
       case TokenType.TOKEN_STAR:
         self.incr()
         unary_type = AstNodeType.POINTER
+        if self.peek().type == TokenType.TOKEN_NAME:
+          identifier = AstNode(
+            AstNodeType.IDENTIFIER,
+            location,
+            {"name": self.peek().text},
+          )
+          self.incr()
+          unary_node = AstNode(
+            unary_type,
+            location,
+          )
+          unary_node.append(identifier)
+          return unary_node
       case _:
         return self.parse_call()
     unary_node = AstNode(
@@ -371,7 +399,15 @@ class AstGen:
   def parse_assignment(self):
     location = self.peek().location
     cursor = self.cursor
-    lvalue = self.parse_or()
+    if self.peek().type == TokenType.TOKEN_NAME:
+      lvalue = AstNode(
+        AstNodeType.IDENTIFIER,
+        location,
+        {"name": self.peek().text},
+      )
+      self.incr()
+    else:
+      lvalue = self.parse_or()
     if self.peek().type == TokenType.TOKEN_EQUAL:
       self.incr()
       assignment = AstNode(
@@ -666,3 +702,6 @@ class AstGen:
     except CompilerError as compiler_error:
       traceback.print_exc()
       print(str(compiler_error))
+
+  def print(self):
+    self.program.print()
