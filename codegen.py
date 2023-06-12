@@ -72,7 +72,6 @@ class CodeGen:
         if len(node.children) == 1:
           reg = self.process(node.children[0])
         if self.in_func:
-          print("Ay Yo porco", self.current_var_declarations)
           self.current_var_declarations += 1
           stack_pos = -2 - ((self.current_var_declarations - 1) * 2)
           self.symbols[node.metadata["name"]] = {"type": "stack", "pos": stack_pos}
@@ -81,7 +80,14 @@ class CodeGen:
         else:
           self.symbols[node.metadata["name"]] = {"type": "data"}
         if len(node.children) == 1:
-          self.append(f"mov\tsf {stack_pos:+g}, r{reg}".replace("-", "- ").replace("+", "+ "))
+          sf_offset_reg = self.alloc_reg()
+          self.append(f"mov\tr{sf_offset_reg}, sf")
+          if stack_pos > 0:
+            self.append(f"add\tr{sf_offset_reg}, {stack_pos}")
+          else:
+            self.append(f"sub\tr{sf_offset_reg}, {abs(stack_pos)}")
+          self.append(f"mov\t[r{sf_offset_reg}], r{reg}")
+          self.free_reg(sf_offset_reg)
           self.free_reg(reg)
       case AstNodeType.NUMBER_LITERAL:
         reg = self.alloc_reg()
@@ -96,7 +102,12 @@ class CodeGen:
         name = node.metadata["name"]
         if name in self.symbols:
           if self.symbols[name]["type"] == "stack":
-            self.append(f"mov\tr{reg}, sf {self.symbols[name]['pos']:+g}".replace("-", "- ").replace("+", "+ "))
+            stack_pos = self.symbols[name]["pos"]
+            self.append(f"mov\tr{reg}, sf")
+            if stack_pos > 0:
+              self.append(f"add\tr{reg}, {stack_pos}")
+            else:
+              self.append(f"sub\tr{reg}, {abs(stack_pos)}")
           else:
             self.append(f"mov\tr{reg}, {node.metadata['name']}")
         else:
