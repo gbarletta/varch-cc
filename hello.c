@@ -1,5 +1,7 @@
 int fibonacci(int n)
 {
+  int ciao;
+  ciao = 40;
   if (n <= 1)
     return n;
   else
@@ -8,5 +10,6 @@ int fibonacci(int n)
 
 int main()
 {
+  int i = 8;
   return fibonacci(10);
 }
