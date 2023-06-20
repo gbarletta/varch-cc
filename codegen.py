@@ -51,7 +51,7 @@ class CodeGen:
         self.append(f"LOCAL_STACK_INIT_PLACEHOLDER")
         self.symbols[node.metadata["name"]] = {"type": "func"}
         for idx, param in enumerate(node.metadata["parameters"]):
-          self.symbols[param["name"]] = {"type": "stack", "pos": 2 + ((idx + 1) * 2)}
+          self.symbols[param["name"]] = {"type": "stack", "pos": 2 + ((idx) * 2)}
           self.stack_symbols.append(param["name"])
         self.process(node.children[0])
         self.append(f"mov\tsp, sf")

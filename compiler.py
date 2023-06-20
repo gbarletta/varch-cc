@@ -25,4 +25,4 @@ class Compiler:
     with open(f"{self.file_path.replace('.c', '.s')}", "w") as f:
       f.write(str(gen))
     
-    # print(gen)
+    print(gen)

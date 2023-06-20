@@ -59,34 +59,42 @@ class Lexer:
         loc = self.get_location()
         self.incr(2)
         self.append(Token(TokenType.TOKEN_OR, "||", loc))
+        continue
       if self.curchar() == "&" and self.curchar(1) == "&":
         loc = self.get_location()
         self.incr(2)
         self.append(Token(TokenType.TOKEN_AND, "&&", loc))
+        continue
       if self.curchar() == "!" and self.curchar(1) == "=":
         loc = self.get_location()
         self.incr(2)
         self.append(Token(TokenType.TOKEN_NOT_EQUAL, "!=", loc))
+        continue
       if self.curchar() == "=" and self.curchar(1) == "=":
         loc = self.get_location()
         self.incr(2)
         self.append(Token(TokenType.TOKEN_EQUAL_EQUAL, "==", loc))
+        continue
       if self.curchar() == ">" and self.curchar(1) == "=":
         loc = self.get_location()
         self.incr(2)
         self.append(Token(TokenType.TOKEN_GTE, ">=", loc))
+        continue
       if self.curchar() == "<" and self.curchar(1) == "=":
         loc = self.get_location()
         self.incr(2)
         self.append(Token(TokenType.TOKEN_LTE, "<=", loc))
+        continue
       for sym in sym_tokens.keys():
         if self.curchar() == sym: # one character tokens (see sym_tokens)
           self.append(Token(sym_tokens[sym], sym, self.get_location()))
           self.incr()
           if self.eof():
             return
+        continue
       if self.curchar().isspace():
         self.incr()
+        continue
       if self.curchar().isalpha(): # names (identifiers)
         loc = self.get_location()
         self.eat()
@@ -94,12 +102,15 @@ class Lexer:
           self.eat()
         digest = self.digest()
         self.append(Token(TokenType.TOKEN_NAME, digest, loc))
+        continue
       if self.curchar() == "#": # ignoring preprocessor 
         while not self.eof() and self.curchar() != "\n":
           self.incr()
+        continue
       if self.curchar() == "/" and self.text[self.cursor + 1] == '/': # comments 
         while not self.eof() and self.curchar() != "\n":
           self.incr()
+        continue
       if self.curchar() == "\"": # string literals
         loc = self.get_location()
         self.incr()
@@ -108,6 +119,7 @@ class Lexer:
         digest = self.digest()
         self.append(Token(TokenType.TOKEN_STRLIT, digest, loc))
         self.incr()
+        continue
       if self.curchar() == "'": # character literals
         loc = self.get_location()
         self.incr()
@@ -116,6 +128,7 @@ class Lexer:
         digest = self.digest()
         self.append(Token(TokenType.TOKEN_CHARLIT, digest, loc))
         self.incr()
+        continue
       if self.curchar().isnumeric(): # number literals (5, 0b101, 0x5)
         loc = self.get_location()
         self.eat()
@@ -123,4 +136,5 @@ class Lexer:
           self.eat()
         digest = self.digest()
         self.append(Token(TokenType.TOKEN_NUMBER, digest, loc))
+        continue
       
