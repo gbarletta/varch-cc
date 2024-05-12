@@ -5,7 +5,7 @@ from functools import wraps
 
 class CodeGen:
   def __init__(self, file_path):
-    self.code = f"# {file_path}\n"
+    self.code = f"# {file_path}\n\nmov r0, main\ncall r0\nhlt\n"
     self.regs = [False] * 16
     self.in_func = False
     self.current_var_declarations = 0
@@ -18,7 +18,7 @@ class CodeGen:
       if not reg:
         self.regs[idx] = True
         return idx
-      
+
   def free_reg(self, reg):
     if reg >= len(self.regs):
       raise Exception(f"invalid reg {reg}")
@@ -36,7 +36,7 @@ class CodeGen:
 
   def replace(self, find, repl):
     self.code = self.code.replace(find, repl)
-  
+
   def process(self, node):
     match node.type:
       case AstNodeType.PROGRAM:
@@ -49,11 +49,13 @@ class CodeGen:
         self.append(f"push\tsf")
         self.append(f"mov\tsf, sp")
         self.append(f"LOCAL_STACK_INIT_PLACEHOLDER")
+        self.append(f"pusha")
         self.symbols[node.metadata["name"]] = {"type": "func"}
         for idx, param in enumerate(node.metadata["parameters"]):
           self.symbols[param["name"]] = {"type": "stack", "pos": 2 + ((idx) * 2)}
           self.stack_symbols.append(param["name"])
         self.process(node.children[0])
+        self.append(f"popa")
         self.append(f"mov\tsp, sf")
         self.append(f"pop\tsf")
         self.append(f"ret")
@@ -124,7 +126,7 @@ class CodeGen:
         num_args = self.process(node.children[1]) # Arguments for function call
         self.append(f"call\tr{func_reg}")
         if num_args > 0:
-          self.append(f"add\tsf, {num_args * 2}")
+          self.append(f"add\tsp, {num_args * 2}")
         self.free_reg(func_reg)
         ret_reg = self.alloc_reg()
         self.append(f"mov\tr{ret_reg}, rv")

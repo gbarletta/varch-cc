@@ -1,15 +1,9 @@
-int fibonacci(int n)
-{
-  int ciao;
-  ciao = 40;
-  if (n <= 1)
-    return n;
-  else
-    return fibonacci(n - 1) + fibonacci(n - 2);
+
+int sum(int a, int b) {
+  return a+b;
 }
 
 int main()
 {
-  int i = 8;
-  return fibonacci(10);
+  return sum(2, 2) + sum(4, 6);
 }
